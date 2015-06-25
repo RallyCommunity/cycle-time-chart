@@ -1,0 +1,11 @@
+.app {
+     /* Add app styles here */
+}
+
+
+.chart-container { 
+	width : 800px;
+	height: 300px;
+    margin-left: auto ;
+    margin-right: auto ;
+}
