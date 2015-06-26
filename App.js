@@ -366,11 +366,35 @@ Ext.define('CustomApp', {
             };
         };
 
-        return {
+        var series = {
             series : _.map(intervals,function(interval,i) { 
                 return createSeries(interval,results[i]);
             })  
         };
+
+        // calculate percentiles
+        var data = _.flatten(_.map( series.series, function(s) { return s.data }));
+        console.log("data",data);
+        var ys = _.map(data,function(d){return d.y});
+        console.log("ys",ys);
+        var pValues = [0.5,0.75,0.99]
+        var pcts = _.map(pValues,function(p) { 
+            return ys.percentile(p);
+        })
+        series.plotLines = _.map(pcts,function(p,i){
+            return {
+                color: '#C8C8C8 ',
+                width:2,
+                zIndex:4,
+                label:{text:''+(pValues[i]*100)+'% = '+p},
+                dashStyle: 'dot', // Style of the plot line. Default to solid
+                value: p, // Value of where the line will appear
+            }
+        })
+        app.fifty = pcts[1];
+        console.log( "percentiles",pcts,series.plotLines);
+
+        return series;
     },
 
     createChart : function( chartData ) {
@@ -388,6 +412,7 @@ Ext.define('CustomApp', {
             chartData: chartData,
         });
 
+        console.log(that.chart);
         that.add(that.chart);
 
     },

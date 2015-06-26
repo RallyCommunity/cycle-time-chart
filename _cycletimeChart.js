@@ -16,6 +16,7 @@ Ext.define('Rally.technicalservices.cycleTimeChart',{
             text: 'Cycle Time'
         },
         xAxis: {
+
             type: 'datetime',
             // dateTimeLabelFormats: {
             //     day: '%e of %b'
@@ -33,6 +34,14 @@ Ext.define('Rally.technicalservices.cycleTimeChart',{
                 title: {
                     text: 'Days'
                 }
+                // plotLines : [{
+                // color: '#ff0000',
+                // width:2,
+                // zIndex:4,
+                // label:{text:'goal'},
+                // dashStyle: 'longdashdot', // Style of the plot line. Default to solid
+                // value: 10, // Value of where the line will appear
+                // }]
             }
         ],
 
@@ -48,7 +57,13 @@ Ext.define('Rally.technicalservices.cycleTimeChart',{
         },
     },
     constructor: function (config) {
+        // var config = Ext.merge()
+        _.first(this.chartConfig.yAxis).plotLines = config.chartData.plotLines;
+
         this.callParent(arguments);
+
+        console.log("chart config",this.chartConfig);
+        
         if (config.title){
             this.chartConfig.title = config.title;
         }
