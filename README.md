@@ -16,3 +16,12 @@ AppTemplate is released under the MIT license.  See the file [LICENSE](./LICENSE
 You can find the documentation on our help [site.](https://help.rallydev.com/apps/2.0/doc/)
 
 forked from main repository on 6/19/2015
+
+
+To Do
+
+* Selectable settings dialog.
+* Report completion date correctly.
+* Draw labels on chart to show type selection, states etc.
+* Draw percentiles lines
+* Put correct granularity on y axis

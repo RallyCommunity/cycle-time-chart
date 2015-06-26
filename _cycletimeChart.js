@@ -17,6 +17,9 @@ Ext.define('Rally.technicalservices.cycleTimeChart',{
         },
         xAxis: {
             type: 'datetime',
+            // dateTimeLabelFormats: {
+            //     day: '%e of %b'
+            // }
             //tickInterval : 24 * 3600 * 1000,
             title: {
                 enabled : true,
@@ -38,7 +41,7 @@ Ext.define('Rally.technicalservices.cycleTimeChart',{
                 tooltip: {
                     xDateFormat: '%Y-%m-%d',
                     headerFormat: '<b>{series.name}</b><br>',
-                    pointFormat: '{point.x} : {point.workItem.FormattedID} {point.y}'
+                    pointFormat: '{point.x}<br>{point.workItem.FormattedID}:{point.workItem.Name} ({point.y})'
                 }
 
             }
