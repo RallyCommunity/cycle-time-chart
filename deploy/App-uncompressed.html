@@ -27,7 +27,8 @@ Ext.define('CustomApp', {
             completedState : "Accepted",
             intervalNumber : "4",
             intervalType : "week",
-            granularity : "day"
+            granularity : "day",
+            percentiles : true
         }
     },
 
@@ -383,28 +384,8 @@ Ext.define('CustomApp', {
             })  
         };
 
-        // calculate percentiles
-        var data = _.flatten(_.map( series.series, function(s) { return s.data }));
-        console.log("data",data);
-        var ys = _.map(data,function(d){return d.y});
-        console.log("ys",ys);
-        var pValues = [0.5,0.75,0.99]
-        var pcts = _.map(pValues,function(p) { 
-            return ys.percentile(p);
-        })
-        series.plotLines = _.map(pcts,function(p,i){
-            return {
-                color: '#C8C8C8 ',
-                width:2,
-                zIndex:4,
-                label:{text:''+(pValues[i]*100)+'% = '+p},
-                dashStyle: 'dot', // Style of the plot line. Default to solid
-                value: p, // Value of where the line will appear
-            }
-        })
-        app.fifty = pcts[1];
-        console.log( "percentiles",pcts,series.plotLines);
-
+        if (that.getSetting("percentiles") === "true" || that.getSetting("percentiles")===true)
+            series = that.addPercentiles(series);
         return series;
     },
 
@@ -426,6 +407,29 @@ Ext.define('CustomApp', {
         console.log(that.chart);
         that.add(that.chart);
 
+    },
+
+    addPercentiles : function(series) {
+
+        // calculate percentiles
+        var data = _.flatten(_.map( series.series, function(s) { return s.data }));
+        var ys = _.map(data,function(d){return d.y});
+        var pValues = [0.5,0.75,0.99]
+        var pcts = _.map(pValues,function(p) { 
+            return ys.percentile(p);
+        })
+        series.plotLines = _.map(pcts,function(p,i){
+            return {
+                color: '#C8C8C8 ',
+                width:2,
+                zIndex:4,
+                label:{text:''+(pValues[i]*100)+'% = '+p},
+                dashStyle: 'dot', // Style of the plot line. Default to solid
+                value: p, // Value of where the line will appear
+            }
+        });
+
+        return series;
     },
 
     // settings code and overrides 
@@ -537,7 +541,15 @@ Ext.define('CustomApp', {
                 margin: '0 0 15 50',
                 labelStyle : "width:200px;",
                 afterLabelTpl: 'Report cycle time in hours or days<br/><span style="color:#999999;">eg. <i>day</i><i>hour</i></span>'
-            }
+            },
+            {
+                name: 'percentiles',
+                xtype: 'rallycheckboxfield',
+                boxLabelAlign: 'after',
+                fieldLabel: 'Show Percentile Lines',
+                margin: '0 0 15 50',
+                boxLabel: 'Show Percentile Lines'
+            },
         ];
     }
 
