@@ -48,7 +48,7 @@ Ext.define('CustomApp', {
         this.completedState = this.getSetting("completedState");
         this.lookbackPeriods = this.getSetting("intervalNumber");
         this.lookbackPeriod = this.getSetting("intervalType");
-        this.granularity = this.getSetting("granularity");
+        this.granularity = this.getSetting("granularity") === "day" ? "day" : "hour";
 
         var intervals = this.getDateIntervals(this.lookbackPeriod,this.lookbackPeriods);
         console.log("intervals", intervals);
@@ -71,6 +71,26 @@ Ext.define('CustomApp', {
         Deft.Promise.all(promises).then( {
             scope:that,
             success : function(intervalCompletedSnapshots) {
+
+                console.log("intervalCompletedSnapshots",intervalCompletedSnapshots);
+
+                var filtered = [];
+
+                _.each(intervalCompletedSnapshots,function(bucket,x) {
+
+                    var remaining = _.map(intervalCompletedSnapshots,function(iSnapshots,i) {
+                        return i > x ? iSnapshots : null;
+                    });
+
+                    remaining = _.flatten(_.compact(remaining));
+
+                    var f = _.filter(bucket,function(item) {
+                        return _.find(remaining,function(r) { return r.raw.ObjectID === item.raw.ObjectID})
+                    });
+                    filtered.push(f);
+                });
+
+                console.log("filtered",filtered);
 
                 that.completedSnapshots = _.flatten(intervalCompletedSnapshots);
                 console.log("Completed Items",that.completedSnapshots);
@@ -204,7 +224,7 @@ Ext.define('CustomApp', {
             }, that.progressPredicate());
 
 
-        console.log("query",JSON.stringify(query));
+        // console.log("query",JSON.stringify(query));
 
         var deferred = new Deft.Deferred();
 
@@ -277,12 +297,10 @@ Ext.define('CustomApp', {
 
         var find = {
                 "_ProjectHierarchy" : { "$in" : [this.getContext().getProject().ObjectID] },
-                "_ValidFrom" : { "$gte" : interval.start },
-                "$or" : [
-                    {"_ValidTo": "9999-01-01T00:00:00.000Z"},
-                    {"_ValidTo" : { "$lt" : interval.end }}    
+                "$and" :[
+                    {"_ValidFrom" : { "$gte" : interval.start }},
+                    {"_ValidFrom" : { "$lt" : interval.end }}
                 ],
-                // "_ValidTo" : { "$lt" : interval.end },
                 "_TypeHierarchy":{"$in":[type]}
         };
 
@@ -307,7 +325,7 @@ Ext.define('CustomApp', {
             }
         };
 
-        console.log("query",JSON.stringify(config));
+        // console.log("query",JSON.stringify(config));
 
         Ext.create( 'Rally.data.lookback.SnapshotStore', config );
 
@@ -367,15 +385,22 @@ Ext.define('CustomApp', {
             };
         };
 
+
         var series = {
             series : _.map(intervals,function(interval,i) { 
                 return createSeries(interval,results[i]);
             })  
         };
 
+        // add y axis label
+        series.granularity = that.granularity + "s";
+
+        // add percentile plotlines (horizontal lines) if configured
         if (that.getSetting("percentiles") === "true" || that.getSetting("percentiles")===true)
             series = that.addPercentiles(series);
         return series;
+
+
     },
 
     createChart : function( chartData ) {
@@ -393,7 +418,7 @@ Ext.define('CustomApp', {
             chartData: chartData,
         });
 
-        console.log(that.chart);
+        // console.log(that.chart);
         that.add(that.chart);
 
     },
@@ -452,7 +477,7 @@ Ext.define('CustomApp', {
     },
     //onSettingsUpdate:  Override
     onSettingsUpdate: function (settings){
-        console.log('onSettingsUpdate',settings);
+        // console.log('onSettingsUpdate',settings);
         Ext.apply(this, settings);
         this._launch(settings);
     },

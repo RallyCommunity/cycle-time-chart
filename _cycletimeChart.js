@@ -59,6 +59,7 @@ Ext.define('Rally.technicalservices.cycleTimeChart',{
     constructor: function (config) {
         // var config = Ext.merge()
         _.first(this.chartConfig.yAxis).plotLines = config.chartData.plotLines;
+        _.first(this.chartConfig.yAxis).title.text = config.chartData.granularity;
 
         this.callParent(arguments);
 
