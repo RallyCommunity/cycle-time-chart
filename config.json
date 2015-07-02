@@ -1,5 +1,5 @@
 {
-   "name": "AmexApp",
+   "name": "CycleTimeChart",
    "className": "CustomApp",
    "server": "https://rally1.rallydev.com",
    "sdk": "2.0",
