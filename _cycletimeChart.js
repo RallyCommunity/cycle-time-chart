@@ -15,6 +15,9 @@ Ext.define('Rally.technicalservices.cycleTimeChart',{
         title: {
             text: 'Cycle Time'
         },
+        subtitle: {
+            text: ''
+        },
         xAxis: {
 
             type: 'datetime',
@@ -60,6 +63,7 @@ Ext.define('Rally.technicalservices.cycleTimeChart',{
         // var config = Ext.merge()
         _.first(this.chartConfig.yAxis).plotLines = config.chartData.plotLines;
         _.first(this.chartConfig.yAxis).title.text = config.chartData.granularity;
+        this.chartConfig.subtitle.text = config.chartData.subtitle.text;
 
         this.callParent(arguments);
 

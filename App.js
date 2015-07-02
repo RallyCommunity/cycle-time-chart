@@ -8,6 +8,8 @@ Ext.define('CustomApp', {
         {xtype:'container',itemId:'settings_box'},
     ],
 
+    subTitleTemplate : 'Type: <b>{type}</b> States:<b>{states}</b> Completed:<b>{completed}</b> Interval:<b>{interval} {interval_type}s</b>',
+
     config: {
         defaultSettings: {
             type : "Story",
@@ -398,6 +400,22 @@ Ext.define('CustomApp', {
         // add percentile plotlines (horizontal lines) if configured
         if (that.getSetting("percentiles") === "true" || that.getSetting("percentiles")===true)
             series = that.addPercentiles(series);
+        
+        var tpl = new Ext.XTemplate(that.subTitleTemplate);
+        series.subtitle = {};
+        series.subtitle.text = "";
+        series.subtitle.text = tpl.apply( { 
+            type : that.type , 
+            states : that.states , 
+            completed : that.completedState,
+            interval : that.lookbackPeriods,
+            interval_type : that.lookbackPeriod } );
+
+        // this.type = this.getSetting("type") === "Story" ? "HierarchicalRequirement" : this.getSetting("type");
+        // this.field = this.getSetting("field");
+        // this.states = this.getSetting("states").split(",");
+        // this.completedState = this.getSetting("completedState");
+
         return series;
 
 
