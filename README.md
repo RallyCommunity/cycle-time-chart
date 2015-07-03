@@ -21,7 +21,13 @@ forked from main repository on 6/19/2015
 To Do
 
 * Selectable settings dialog.
-* Report completion date correctly.
-* Draw labels on chart to show type selection, states etc.
-* Draw percentiles lines
+* ~~Report completion date correctly.~~
+* ~~Draw labels on chart to show type selection, states etc.~~
+* ~~Draw percentiles lines~~
 * Put correct granularity on y axis
+* Drop downs for type, field etc. selection
+* wider states field
+* show work item sizing in mouseover
+* show grid of items (optional)
+* better labelling for settings dialog
+* show info about initial loading.
