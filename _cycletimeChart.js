@@ -10,7 +10,7 @@ Ext.define('Rally.technicalservices.cycleTimeChart',{
         // colors : ["#E0E0E0","#00a9e0","#fad200","#8dc63f"],
         chart: {
             type: 'scatter',
-            zoomType: 'xy',
+            zoomType: 'xy'
         },
         title: {
             text: 'Cycle Time'
@@ -30,21 +30,13 @@ Ext.define('Rally.technicalservices.cycleTimeChart',{
                 text: 'Date'
             },
             startOnTick: true,
-            endOnTick: true,
+            endOnTick: true
         },
         yAxis: [
             {
                 title: {
                     text: 'Days'
                 }
-                // plotLines : [{
-                // color: '#ff0000',
-                // width:2,
-                // zIndex:4,
-                // label:{text:'goal'},
-                // dashStyle: 'longdashdot', // Style of the plot line. Default to solid
-                // value: 10, // Value of where the line will appear
-                // }]
             }
         ],
 
@@ -57,7 +49,7 @@ Ext.define('Rally.technicalservices.cycleTimeChart',{
                 }
 
             }
-        },
+        }
     },
     constructor: function (config) {
         // var config = Ext.merge()

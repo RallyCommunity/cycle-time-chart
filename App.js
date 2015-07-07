@@ -1,11 +1,18 @@
 var app = null;
 
+// Array Remove - By John Resig (MIT Licensed)
+Array.prototype.remove = function(from, to) {
+  var rest = this.slice((to || from) + 1 || this.length);
+  this.length = from < 0 ? this.length + from : from;
+  return this.push.apply(this, rest);
+};
+
 Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
 
     items : [
-        {xtype:'container',itemId:'settings_box'},
+        {xtype:'container',itemId:'settings_box'}
     ],
 
     subTitleTemplate : 'Type: <b>{type}</b> States:<b>{states}</b> Completed:<b>{completed}</b> Interval:<b>{interval} {interval_type}s</b>',
@@ -16,6 +23,7 @@ Ext.define('CustomApp', {
             field : "ScheduleState",
             states : "In-Progress,Completed",
             completedState : "Accepted",
+            completedStateName : "Accepted",
             intervalNumber : "4",
             intervalType : "week",
             granularity : "day",
@@ -47,7 +55,8 @@ Ext.define('CustomApp', {
         this.type = this.getSetting("type") === "Story" ? "HierarchicalRequirement" : this.getSetting("type");
         this.field = this.getSetting("field");
         this.states = this.getSetting("states").split(",");
-        this.completedState = this.getSetting("completedState");
+        // this.completedState = this.getSetting("completedState").get("name");
+        this.completedState = this.getSetting("completedStateName");
         this.lookbackPeriods = this.getSetting("intervalNumber");
         this.lookbackPeriod = this.getSetting("intervalType");
         this.granularity = this.getSetting("granularity") === "day" ? "day" : "hour";
@@ -87,7 +96,7 @@ Ext.define('CustomApp', {
                     remaining = _.flatten(_.compact(remaining));
 
                     var f = _.filter(bucket,function(item) {
-                        return _.find(remaining,function(r) { return r.raw.ObjectID === item.raw.ObjectID})
+                        return _.find(remaining,function(r) { return r.raw.ObjectID === item.raw.ObjectID;});
                     });
                     filtered.push(f);
                 });
@@ -100,7 +109,7 @@ Ext.define('CustomApp', {
 
                 app.totalWorkItems = _.reduce(intervalCompletedSnapshots,function(memo,intSnaps) {
                     return memo + intSnaps.length;
-                },0)
+                },0);
 
                 var cPromises = _.map(intervalCompletedSnapshots,function(intCompletedSnapshots,i) {
                     var deferred = Ext.create('Deft.Deferred');
@@ -259,11 +268,7 @@ Ext.define('CustomApp', {
 
     progressPredicate : function() {
         var p = {};
-        // p[this.field] = {
-        //     '$gte': (this.beginState === "No Entry") ? null : this.beginState,
-        //     '$lt': this.endState
-        // }
-        p[this.field] = { "$in" : this.states }
+        p[this.field] = { "$in" : this.states };
         return p;
     },
 
@@ -382,7 +387,7 @@ Ext.define('CustomApp', {
                             FormattedID : completedItem.get("FormattedID"),
                             Name : completedItem.get("Name")
                         }
-                    }
+                    };
                 })
             };
         };
@@ -433,7 +438,7 @@ Ext.define('CustomApp', {
 
         that.chart = Ext.create('Rally.technicalservices.cycleTimeChart', {
             itemId: 'rally-chart',
-            chartData: chartData,
+            chartData: chartData
         });
 
         // console.log(that.chart);
@@ -444,12 +449,12 @@ Ext.define('CustomApp', {
     addPercentiles : function(series) {
 
         // calculate percentiles
-        var data = _.flatten(_.map( series.series, function(s) { return s.data }));
-        var ys = _.map(data,function(d){return d.y});
-        var pValues = [0.5,0.75,0.99]
+        var data = _.flatten(_.map( series.series, function(s) { return s.data; }));
+        var ys = _.map(data,function(d){return d.y;});
+        var pValues = [0.5,0.75,0.99];
         var pcts = _.map(pValues,function(p) { 
             return ys.percentile(p);
-        })
+        });
         series.plotLines = _.map(pcts,function(p,i){
             return {
                 color: '#C8C8C8 ',
@@ -457,8 +462,8 @@ Ext.define('CustomApp', {
                 zIndex:4,
                 label:{text:''+(pValues[i]*100)+'% = '+p},
                 dashStyle: 'dot', // Style of the plot line. Default to solid
-                value: p, // Value of where the line will appear
-            }
+                value: p // Value of where the line will appear
+            };
         });
 
         return series;
@@ -489,15 +494,44 @@ Ext.define('CustomApp', {
         return this._appSettings;
     },
     _onSettingsSaved: function(settings){
+        console.log("Saving Settings",settings);
         Ext.apply(this.settings, settings);
         this._hideSettings();
         this.onSettingsUpdate(settings);
     },
     //onSettingsUpdate:  Override
     onSettingsUpdate: function (settings){
-        // console.log('onSettingsUpdate',settings);
+        console.log('onSettingsUpdate',settings);
         Ext.apply(this, settings);
         this._launch(settings);
+    },
+
+    /********************************************
+    /* for drop-down filtering
+    /*
+    /********************************************/
+    _filterOutExceptChoices: function(store) {
+        store.filter([{
+            filterFn:function(field){ 
+                var attribute_definition = field.get('fieldDefinition').attributeDefinition;
+                var attribute_type = null;
+                if ( attribute_definition ) {
+                    attribute_type = attribute_definition.AttributeType;
+                }
+                if (  attribute_type == "BOOLEAN" ) {
+                    return true;
+                }
+                if ( attribute_type == "STRING" || attribute_type == "STATE" ) {
+                    if ( field.get('fieldDefinition').attributeDefinition.Constrained ) {
+                        return true;
+                    }
+                }
+                if ( field.get('name') === 'State' ) { 
+                    return true;
+                }
+                return false;
+            } 
+        }]);
     },
 
     // type : "HierarchicalRequirement",
@@ -511,41 +545,151 @@ Ext.define('CustomApp', {
     getSettingsFields: function() {
         var me = this;
         return [ 
+
             {
                 name: 'type',
-                xtype: 'rallytextfield',
-                boxLabelAlign: 'after',
-                fieldLabel: 'Type',
-                margin: '0 0 15 50',
+                xtype:'rallycombobox',
+                displayField: 'DisplayName',
+                fieldLabel: 'Artifact Type',
+                afterLabelTpl: 'Rally data type for which cycle time is being calculated<br/><span style="color:#999999;">eg.<i>Story</i> <i>Task</i> <i>Defect</i> <i>PortfolioItem/Feature</i></span>',
+
+                autoExpand: true,
+                storeConfig: {
+                    model:'TypeDefinition',
+                    filters: [
+                      {property:'Restorable',value:true}
+                    ]
+                },
+                // labelWidth: 100,
                 labelStyle : "width:200px;",
-                afterLabelTpl: 'Rally data type for which cycle time is being calculated<br/><span style="color:#999999;">eg.<i>Story</i> <i>Task</i> <i>Defect</i> <i>PortfolioItem/Feature</i></span>'
+                labelAlign: 'left',
+                minWidth: 200,
+                margin: "0 0 15 50",
+                valueField:'TypePath',
+                bubbleEvents: ['select','ready'],
+                readyEvent: 'ready'
             },
             {
                 name: 'field',
-                xtype: 'rallytextfield',
-                boxLabelAlign: 'after',
-                fieldLabel: 'State Field',
+                xtype: 'rallyfieldcombobox',
+                fieldLabel: 'Group By',
                 margin: '0 0 15 50',
                 labelStyle : "width:200px;",
-                afterLabelTpl: 'The Rally field used for state<br/><span style="color:#999999;">eg. <i>ScheduleState State</i></span>'
+                afterLabelTpl: 'The Rally field used for state<br/><span style="color:#999999;">eg. <i>ScheduleState State</i></span>',
+
+                labelAlign: 'left',
+                minWidth: 200,
+                // margin: 10,
+                autoExpand: false,
+                alwaysExpanded: false,
+                handlesEvents: { 
+                    select: function(type_picker) {
+                        console.log("type_picker.getValue()",type_picker.getValue());
+                        this.modelType = type_picker.getValue();
+                        this.refreshWithNewModelType(type_picker.getValue());
+                    },
+                    ready: function(type_picker){
+                        this.refreshWithNewModelType(type_picker.getValue());
+                    }
+                },
+                listeners: {
+                    ready: function(field_box) {
+                        me._filterOutExceptChoices(field_box.getStore());
+                    },
+                    select: function(field_picker,records) {
+                        console.log("firing event",field_picker,records);
+                        this.fireEvent('myspecialevent1', _.first(records),this.modelType);
+                    }
+                },
+                bubbleEvents: ['myspecialevent1'],
+                readyEvent: 'ready'
+            },
+            {   
+                name: 'possibleState',
+                xtype: 'rallyfieldvaluecombobox',
+                model : "UserStory",
+                field : "ScheduleState",
+                boxLabelAlign: 'after',
+                fieldLabel: 'State',
+                margin: '0 0 15 50',
+                labelStyle : "width:200px;",
+                afterLabelTpl: 'Click on one or more states to add or remove in the list',
+                handlesEvents: { 
+                    myspecialevent1: function(field,model) {
+                        this.setField(field.raw.fieldDefinition);
+                    }
+                },
+                listeners : {
+                    select : function(state_picker,records) {
+                        console.log("state_picker",state_picker,"records",records);
+                        this.fireEvent("state_selected",_.first(records).get("name"));
+                    }
+                },
+                bubbleEvents : ['state_selected']
             },
             {
                 name: 'states',
+                width : 400,
                 xtype: 'rallytextfield',
                 boxLabelAlign: 'after',
                 fieldLabel: 'States',
                 margin: '0 0 15 50',
                 labelStyle : "width:200px;",
-                afterLabelTpl: 'A comma delimited list of the states to calculated cycle time for<br/><span style="color:#999999;">eg. <i>In-Progress,Completed</i></span>'
+                // afterLabelTpl: 'A comma delimited list of the states to calculated cycle time for<br/><span style="color:#999999;">eg. <i>In-Progress,Completed</i></span>',
+                handlesEvents: { 
+                    state_selected: function(state) {
+                        console.log("state_selected",this.getValue(),state);
+                        var vals = _.filter(this.getValue().split(","),function(s) { return s.length > 0; });
+                        console.log(vals);
+                        var x = vals.indexOf(state);
+                        if ( x == -1 )
+                            vals.push(state);
+                        else
+                            vals.remove(x);
+                        this.setValue(vals.join(","));
+                    },
+                    myspecialevent1: function(field,model) {
+                        this.setValue("");
+                    }
+
+                }
             },
+
             {
                 name: 'completedState',
-                xtype: 'rallytextfield',
+                xtype: 'rallyfieldvaluecombobox',
+                model : "UserStory",
+                field : "ScheduleState",
                 boxLabelAlign: 'after',
                 fieldLabel: 'Completed State',
                 margin: '0 0 15 50',
                 labelStyle : "width:200px;",
-                afterLabelTpl: 'The state that represents "completed" <br/><span style="color:#999999;">eg. <i>Accepted</i></span>'
+                afterLabelTpl: 'The state that represents "completed" <br/><span style="color:#999999;">eg. <i>Accepted</i></span>',
+                handlesEvents: { 
+                    myspecialevent1: function(field,model) {
+                        this.setField(field.raw.fieldDefinition);
+                    }
+                },
+                listeners : {
+                    select : function(picker,records) {
+                        this.fireEvent("completed_state_selected",_.first(records).get("name"));
+                    }
+                },
+                bubbleEvents : ['completed_state_selected']
+            },
+            {
+                name: 'completedStateName',
+                hidden : true,
+                xtype: 'rallytextfield',
+                boxLabelAlign: 'after',
+                fieldLabel: 'Intervals',
+                margin: '0 0 15 50',
+                labelStyle : "width:200px;",
+                handlesEvents: { 
+                    completed_state_selected: function(completedStateName) {
+                        this.setValue(completedStateName);
+                    }
+                }
             },
             {
                 name: 'intervalNumber',
@@ -563,7 +707,7 @@ Ext.define('CustomApp', {
                 fieldLabel: 'Interval Type',
                 margin: '0 0 15 50',
                 labelStyle : "width:200px;",
-                afterLabelTpl: 'The interval type<br/><span style="color:#999999;">eg. <i>week</i><i>day</i><i>month</i></span>'
+                afterLabelTpl: 'The interval type<br/><span style="color:#999999;">eg. <i>week </i><i>day </i><i>month</i></span>'
             },
             {
                 name: 'granularity',
@@ -572,7 +716,7 @@ Ext.define('CustomApp', {
                 fieldLabel: 'Granularity',
                 margin: '0 0 15 50',
                 labelStyle : "width:200px;",
-                afterLabelTpl: 'Report cycle time in hours or days<br/><span style="color:#999999;">eg. <i>day</i><i>hour</i></span>'
+                afterLabelTpl: 'Report cycle time in hours or days<br/><span style="color:#999999;">eg. <i>day </i><i>hour</i></span>'
             },
             {
                 name: 'percentiles',
@@ -581,7 +725,7 @@ Ext.define('CustomApp', {
                 fieldLabel: 'Show Percentile Lines',
                 margin: '0 0 15 50',
                 boxLabel: 'Show Percentile Lines'
-            },
+            }
         ];
     }
 
