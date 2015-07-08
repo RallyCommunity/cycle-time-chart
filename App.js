@@ -403,8 +403,10 @@ Ext.define('CustomApp', {
         series.granularity = that.granularity + "s";
 
         // add percentile plotlines (horizontal lines) if configured
-        if (that.getSetting("percentiles") === "true" || that.getSetting("percentiles")===true)
+        if (that.getSetting("percentiles") === "true" || that.getSetting("percentiles")===true) {
             series = that.addPercentiles(series);
+            series = that.addStdDeviation(series);
+        }
         
         var tpl = new Ext.XTemplate(that.subTitleTemplate);
         series.subtitle = {};
@@ -468,6 +470,24 @@ Ext.define('CustomApp', {
 
         return series;
     },
+
+    addStdDeviation : function(series) {
+
+        // calculate percentiles
+        var data = _.flatten(_.map( series.series, function(s) { return s.data; }));
+        var ys = _.map(data,function(d){return d.y;});
+        var mean = ys.mean();
+        var stdDev = ys.stdDev();
+
+        series.plotBands = [{
+            color: '#FFF5EE', // Color value : light organge
+            from: (mean - stdDev) > 0 ? (mean-stdDev) : 0,
+            to: mean + stdDev
+        }];
+
+        return series;
+    },
+
 
     // settings code and overrides 
         //showSettings:  Override
