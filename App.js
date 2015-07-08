@@ -27,7 +27,8 @@ Ext.define('CustomApp', {
             intervalNumber : "4",
             intervalType : "week",
             granularity : "day",
-            percentiles : true
+            percentiles : true,
+            stddev : false
         }
     },
 
@@ -63,6 +64,9 @@ Ext.define('CustomApp', {
 
         var intervals = this.getDateIntervals(this.lookbackPeriod,this.lookbackPeriods);
         console.log("intervals", intervals);
+        app.totalIntervals = intervals.length;
+        that.showMask("Loading completed snapshots for " + app.totalIntervals + " intervals.");
+
         var promises = _.map(intervals,function(interval) {
             var deferred = Ext.create('Deft.Deferred');
                 that._getCompletedSnapshots(
@@ -300,6 +304,8 @@ Ext.define('CustomApp', {
 
     _getCompletedSnapshots : function(type, field, endState, interval) {
 
+        var that = this;
+
         var deferred = new Deft.Deferred();
 
         var find = {
@@ -327,6 +333,8 @@ Ext.define('CustomApp', {
             limit: Infinity,
             listeners: {
                 load: function(store, data, success) {
+                    app.totalIntervals = app.totalIntervals - 1;
+                    that.showMask("Loading completed snapshots for " + app.totalIntervals + " intervals.");
                     deferred.resolve(data);
                 }
             }
@@ -405,6 +413,9 @@ Ext.define('CustomApp', {
         // add percentile plotlines (horizontal lines) if configured
         if (that.getSetting("percentiles") === "true" || that.getSetting("percentiles")===true) {
             series = that.addPercentiles(series);
+        }
+
+        if (that.getSetting("stddev") === "true" || that.getSetting("stddev")===true) {
             series = that.addStdDeviation(series);
         }
         
@@ -564,6 +575,17 @@ Ext.define('CustomApp', {
 
     getSettingsFields: function() {
         var me = this;
+
+        var intervalsStore = new Ext.data.ArrayStore({
+            fields: ['interval'],
+            data : [['day'],['week'],['month'],['year']]
+        });  
+
+        var granularityStore = new Ext.data.ArrayStore({
+            fields: ['granularity'],
+            data : [['day'],['hour']]
+        });  
+
         return [ 
 
             {
@@ -720,18 +742,38 @@ Ext.define('CustomApp', {
                 labelStyle : "width:200px;",
                 afterLabelTpl: 'The number of intervals to report on<br/><span style="color:#999999;">eg. <i>4</i></span>'
             },
+            // {
+            //     name: 'intervalType',
+            //     xtype: 'rallytextfield',
+            //     boxLabelAlign: 'after',
+            //     fieldLabel: 'Interval Type',
+            //     margin: '0 0 15 50',
+            //     labelStyle : "width:200px;",
+            //     afterLabelTpl: 'The interval type<br/><span style="color:#999999;">eg. <i>week </i><i>day </i><i>month</i></span>'
+            // },
             {
                 name: 'intervalType',
-                xtype: 'rallytextfield',
+                xtype: 'combo',
+                store : intervalsStore,
+                valueField : 'interval',
+                displayField : 'interval',
+                queryMode : 'local',
+                forceSelection : true,
                 boxLabelAlign: 'after',
                 fieldLabel: 'Interval Type',
                 margin: '0 0 15 50',
                 labelStyle : "width:200px;",
                 afterLabelTpl: 'The interval type<br/><span style="color:#999999;">eg. <i>week </i><i>day </i><i>month</i></span>'
             },
+
             {
                 name: 'granularity',
-                xtype: 'rallytextfield',
+                xtype: 'combo',
+                store : granularityStore,
+                valueField : 'granularity',
+                displayField : 'granularity',
+                queryMode : 'local',
+                forceSelection : true,
                 boxLabelAlign: 'after',
                 fieldLabel: 'Granularity',
                 margin: '0 0 15 50',
@@ -745,7 +787,16 @@ Ext.define('CustomApp', {
                 fieldLabel: 'Show Percentile Lines',
                 margin: '0 0 15 50',
                 boxLabel: 'Show Percentile Lines'
+            },
+            {
+                name: 'stddev',
+                xtype: 'rallycheckboxfield',
+                boxLabelAlign: 'after',
+                fieldLabel: 'Show +/- 1 Standard Deviation',
+                margin: '0 0 15 50',
+                boxLabel: '(Y-Axis Plotband)'
             }
+
         ];
     }
 

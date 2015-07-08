@@ -5,7 +5,6 @@
    "sdk": "2.0",
    "javascript": [
       "App.js",
-      "StateFieldPicker.js",
       "_cycletimeChart.js",
       "./lib/psMathStats.min.js",
       "https://rally1.rallydev.com/apps/2.0/lib/analytics/analytics-all.js",

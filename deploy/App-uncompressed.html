@@ -38,7 +38,8 @@ Ext.define('CustomApp', {
             intervalNumber : "4",
             intervalType : "week",
             granularity : "day",
-            percentiles : true
+            percentiles : true,
+            stddev : false
         }
     },
 
@@ -74,6 +75,9 @@ Ext.define('CustomApp', {
 
         var intervals = this.getDateIntervals(this.lookbackPeriod,this.lookbackPeriods);
         console.log("intervals", intervals);
+        app.totalIntervals = intervals.length;
+        that.showMask("Loading completed snapshots for " + app.totalIntervals + " intervals.");
+
         var promises = _.map(intervals,function(interval) {
             var deferred = Ext.create('Deft.Deferred');
                 that._getCompletedSnapshots(
@@ -311,6 +315,8 @@ Ext.define('CustomApp', {
 
     _getCompletedSnapshots : function(type, field, endState, interval) {
 
+        var that = this;
+
         var deferred = new Deft.Deferred();
 
         var find = {
@@ -338,6 +344,8 @@ Ext.define('CustomApp', {
             limit: Infinity,
             listeners: {
                 load: function(store, data, success) {
+                    app.totalIntervals = app.totalIntervals - 1;
+                    that.showMask("Loading completed snapshots for " + app.totalIntervals + " intervals.");
                     deferred.resolve(data);
                 }
             }
@@ -416,6 +424,9 @@ Ext.define('CustomApp', {
         // add percentile plotlines (horizontal lines) if configured
         if (that.getSetting("percentiles") === "true" || that.getSetting("percentiles")===true) {
             series = that.addPercentiles(series);
+        }
+
+        if (that.getSetting("stddev") === "true" || that.getSetting("stddev")===true) {
             series = that.addStdDeviation(series);
         }
         
@@ -575,6 +586,17 @@ Ext.define('CustomApp', {
 
     getSettingsFields: function() {
         var me = this;
+
+        var intervalsStore = new Ext.data.ArrayStore({
+            fields: ['interval'],
+            data : [['day'],['week'],['month'],['year']]
+        });  
+
+        var granularityStore = new Ext.data.ArrayStore({
+            fields: ['granularity'],
+            data : [['day'],['hour']]
+        });  
+
         return [ 
 
             {
@@ -731,18 +753,38 @@ Ext.define('CustomApp', {
                 labelStyle : "width:200px;",
                 afterLabelTpl: 'The number of intervals to report on<br/><span style="color:#999999;">eg. <i>4</i></span>'
             },
+            // {
+            //     name: 'intervalType',
+            //     xtype: 'rallytextfield',
+            //     boxLabelAlign: 'after',
+            //     fieldLabel: 'Interval Type',
+            //     margin: '0 0 15 50',
+            //     labelStyle : "width:200px;",
+            //     afterLabelTpl: 'The interval type<br/><span style="color:#999999;">eg. <i>week </i><i>day </i><i>month</i></span>'
+            // },
             {
                 name: 'intervalType',
-                xtype: 'rallytextfield',
+                xtype: 'combo',
+                store : intervalsStore,
+                valueField : 'interval',
+                displayField : 'interval',
+                queryMode : 'local',
+                forceSelection : true,
                 boxLabelAlign: 'after',
                 fieldLabel: 'Interval Type',
                 margin: '0 0 15 50',
                 labelStyle : "width:200px;",
                 afterLabelTpl: 'The interval type<br/><span style="color:#999999;">eg. <i>week </i><i>day </i><i>month</i></span>'
             },
+
             {
                 name: 'granularity',
-                xtype: 'rallytextfield',
+                xtype: 'combo',
+                store : granularityStore,
+                valueField : 'granularity',
+                displayField : 'granularity',
+                queryMode : 'local',
+                forceSelection : true,
                 boxLabelAlign: 'after',
                 fieldLabel: 'Granularity',
                 margin: '0 0 15 50',
@@ -756,186 +798,21 @@ Ext.define('CustomApp', {
                 fieldLabel: 'Show Percentile Lines',
                 margin: '0 0 15 50',
                 boxLabel: 'Show Percentile Lines'
+            },
+            {
+                name: 'stddev',
+                xtype: 'rallycheckboxfield',
+                boxLabelAlign: 'after',
+                fieldLabel: 'Show +/- 1 Standard Deviation',
+                margin: '0 0 15 50',
+                boxLabel: '(Y-Axis Plotband)'
             }
+
         ];
     }
 
 });
 
-                (function() {
-    var Ext = window.Ext4 || window.Ext;
-
-    Ext.define("Rally.apps.charts.settings.StateFieldPicker", {
-        extend: 'Ext.form.FieldSet',
-        alias: 'widget.rallychartssettingsstatefieldpicker',
-
-        requires: [
-            'Rally.ui.combobox.FieldComboBox',
-            'Rally.ui.combobox.FieldValueComboBox'
-        ],
-
-        // extjs properties
-        flex: 1,
-        border: false,
-        width: 420,
-        layout: 'vbox',
-        defaultType: 'textfield',
-        defaults    : {
-            anchor     : '-10',
-            labelWidth : 50
-        },
-        items: [],
-
-        // custom properties
-        settings: undefined, // Map of initial settings values
-
-
-        initComponent: function() {
-            this.callParent();
-            this._addStateFieldPicker();
-
-            this.on('statefieldnameselected', this._onStateFieldNameSelected);
-            this.on('statefieldnameready', this._onStateFieldNameReady);
-            this.on('statefieldvaluesready', this._onStateFieldValuesReady);
-            this.on('statefieldvalueschanged', this._onStateFieldValuesChanged);
-        },
-
-        /**
-         * Event handling
-         */
-        _onStateFieldNameSelected: function(fieldDefinition) {
-            // This happens on field change
-            this._refreshStateValuesPicker(fieldDefinition.name);
-        },
-
-        _onStateFieldNameReady: function() {
-            // This happens on initial settings panel load
-            this._updateStateFieldComboboxValue();
-            this._refreshStateValuesPicker(this.settings.stateFieldName);
-        },
-
-        _onStateFieldValuesReady: function(combo) {
-            // This happens on field values combo box ready
-            if (_.isString(this.settings.stateFieldValues)) {
-                var values = [];
-                values = this.settings.stateFieldValues.split(',');
-                combo.setValue(values);
-            }
-
-            this._publishComponentReady();
-        },
-
-        _onStateFieldValuesChanged: function(combo, records) {
-            this._sortDisplayedStatesByStore(combo, records);
-        },
-
-
-        _sortDisplayedStatesByStore: function(combo, records) {
-            var i, j;
-            var values=[];
-            if(records.length > 0) {
-              for (i=0;i<records[0].store.data.items.length;i++) {
-                  for(j=0;j<records.length;j++) {
-                     if(records[j].data.StringValue === records[0].store.data.items[i].data.StringValue) {
-                         values.push(records[j].data.StringValue);
-                     }
-                  }
-              }
-            }
-            combo.setValue(values);
-        },
-
-        _publishComponentReady: function() {
-            if (Rally.BrowserTest) {
-                Rally.BrowserTest.publishComponentReady(this);
-            }
-        },
-
-        _updateStateFieldComboboxValue: function() {
-            if(this.settings) {
-                var combo = this.down('rallyfieldcombobox');
-                combo.setValue(this.settings.stateFieldName);
-            }
-        },
-
-        _refreshStateValuesPicker: function(fieldName) {
-            // if values picker already exists, destroy it
-            var old = this.down('rallyfieldvaluecombobox');
-            if (old) {
-                this.remove(old);
-            }
-            this._addStateValuesPicker(fieldName);
-        },
-
-        _addStateFieldPicker: function() {
-            var me = this;
-            this.add({
-                name: 'stateFieldName',
-                xtype: 'rallyfieldcombobox',
-                value: this.settings.stateFieldName,
-                model: Ext.identityFn('UserStory'),
-                margin: '10px 0 0 0',
-                width: 180,
-                fieldLabel: 'Field',
-                listeners: {
-                    select: function(combo) {
-                        this.fireEvent('statefieldnameselected', combo.getRecord().get('fieldDefinition'));
-                    },
-                    ready: function(combo) {
-                        combo.store.filter({filterFn: function(record) {
-                            var attr = record.get('fieldDefinition').attributeDefinition;
-                            return attr && !attr.ReadOnly && attr.Constrained && attr.AttributeType !== 'OBJECT' && attr.AttributeType !== 'COLLECTION';
-                        }});
-
-                        if (combo.getRecord()) {
-                            this.fireEvent('statefieldnameready');
-                        } else {
-                            me.fireEvent('ready', me);
-                        }
-                    }
-                },
-                bubbleEvents: ['statefieldnameselected', 'statefieldnameready']
-            });
-        },
-
-        _addStateValuesPicker: function(fieldName) {
-            this.add({
-                xtype: 'rallyfieldvaluecombobox',
-                model: Ext.identityFn('UserStory'),
-                field: fieldName,
-                name: 'stateFieldValues',
-                valueField: "StringValue",
-                displayField: "StringValue",
-                multiSelect: true,
-                readyEvent: 'ready',
-                fieldLabel: 'Show states',
-                margin: '10px 0 0 0',
-                width: 400,
-                forceSelection: true,
-                allowBlank: false,
-                listeners: {
-                    ready: function(combo) {
-                        this.fireEvent('statefieldvaluesready', this);
-                    },
-                    select: function(combo, records) {
-                        this.fireEvent('statefieldvalueschanged', combo, records);
-                    }
-                },
-                listConfig: {
-                    itemTpl: Ext.create('Ext.XTemplate',
-                        '<div class="statefieldvalue-boundlist-item"><img src="' + Ext.BLANK_IMAGE_URL + '" class="stateFieldValue"/> &nbsp;{StringValue}</div>'),
-                    listeners:{
-                        afterrender: function(){
-                            this.selectedItemCls = Ext.baseCSSPrefix + 'boundlist-selected statefieldvalue-boundlist-selected';
-                        }
-                    }
-                },
-                bubbleEvents: ['statefieldvaluesready', 'statefieldvalueschanged']
-            });
-        }
-
-    });
-}());
                 Ext.define('Rally.technicalservices.cycleTimeChart',{
     extend: 'Rally.ui.chart.Chart',
     alias: 'widget.progresschart',
