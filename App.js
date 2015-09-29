@@ -28,7 +28,8 @@ Ext.define('CustomApp', {
             intervalType : "week",
             granularity : "day",
             percentiles : true,
-            stddev : false
+            stddev : false,
+            featureProgressState : false
         }
     },
 
@@ -317,6 +318,8 @@ Ext.define('CustomApp', {
                 "_TypeHierarchy":{"$in":[type]}
         };
 
+        // "_PreviousValues.ActualEndDate" : null
+
         // add dynamic elements to find
         find[field] = endState;
         find[("_PreviousValues." + field)] = { "$ne" : endState };
@@ -372,6 +375,25 @@ Ext.define('CustomApp', {
         var results = tisc.getResults();
 
         return results;
+    },
+
+    cluster : function(series) {
+
+        var data = [].concat.apply([],
+            _.map(series.series,function(s){
+                return _.map(s.data,function(d){return d.y});
+            })
+        );
+
+        console.log("data",data);
+
+        // var clusters = clusterfck.hcluster(data, clusterfck.MANHATTAN_DISTANCE, clusterfck.SINGLE_LINKAGE,10);
+        var clusters = clusterfck.kmeans(data, 5);
+
+        console.log("clusters",clusters);
+
+
+
     },
 
     prepareChartData : function ( intervals, results ) {
@@ -434,8 +456,9 @@ Ext.define('CustomApp', {
         // this.states = this.getSetting("states").split(",");
         // this.completedState = this.getSetting("completedState");
 
-        return series;
+        that.cluster(series);
 
+        return series;
 
     },
 
@@ -635,8 +658,11 @@ Ext.define('CustomApp', {
                     }
                 },
                 listeners: {
-                    ready: function(field_box) {
+                    ready: function(field_box,records) {
                         me._filterOutExceptChoices(field_box.getStore());
+                        console.log("field combo ready:",this.getRecord());
+                        if (this.getRecord()!==false)
+                            this.fireEvent('myspecialevent1', this.getRecord(),this.modelType);
                     },
                     select: function(field_picker,records) {
                         console.log("firing event",field_picker,records);
@@ -691,7 +717,7 @@ Ext.define('CustomApp', {
                         this.setValue(vals.join(","));
                     },
                     myspecialevent1: function(field,model) {
-                        this.setValue("");
+                        // this.setValue("");
                     }
 
                 }
@@ -709,12 +735,17 @@ Ext.define('CustomApp', {
                 afterLabelTpl: 'The state that represents "completed" <br/><span style="color:#999999;">eg. <i>Accepted</i></span>',
                 handlesEvents: { 
                     myspecialevent1: function(field,model) {
+                        console.log("getValue1",this.getValue());
                         this.setField(field.raw.fieldDefinition);
+                        console.log("getValue2",this.getValue());
                     }
                 },
                 listeners : {
                     select : function(picker,records) {
                         this.fireEvent("completed_state_selected",_.first(records).get("name"));
+                    },
+                    ready: function(picker) {
+                        console.log("Completed State Ready:",this.getValue());
                     }
                 },
                 bubbleEvents : ['completed_state_selected']
@@ -795,6 +826,14 @@ Ext.define('CustomApp', {
                 fieldLabel: 'Show +/- 1 Standard Deviation',
                 margin: '0 0 15 50',
                 boxLabel: '(Y-Axis Plotband)'
+            },
+             {
+                name: 'featureProgressState',
+                xtype: 'rallycheckboxfield',
+                boxLabelAlign: 'after',
+                fieldLabel: 'Use Story progress for Features',
+                margin: '0 0 15 50',
+                boxLabel: 'Use Story progress for Features'
             }
 
         ];

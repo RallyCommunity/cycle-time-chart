@@ -7,6 +7,7 @@
       "App.js",
       "_cycletimeChart.js",
       "./lib/psMathStats.min.js",
+      "./lib/clusterfck-0.1.js",
       "https://rally1.rallydev.com/apps/2.0/lib/analytics/analytics-all.js",
       "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.3.1/moment.min.js"
    ],
