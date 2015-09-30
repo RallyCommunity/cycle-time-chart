@@ -40,7 +40,7 @@ Ext.define('CustomApp', {
             granularity : "day",
             percentiles : true,
             stddev : false,
-            featureProgressState : false
+            // featureProgressState : false
         }
     },
 
@@ -450,7 +450,6 @@ Ext.define('CustomApp', {
 
         return series;
 
-
     },
 
     createChart : function( chartData ) {
@@ -468,7 +467,6 @@ Ext.define('CustomApp', {
             chartData: chartData
         });
 
-        // console.log(that.chart);
         that.add(that.chart);
 
     },
@@ -817,15 +815,16 @@ Ext.define('CustomApp', {
                 fieldLabel: 'Show +/- 1 Standard Deviation',
                 margin: '0 0 15 50',
                 boxLabel: '(Y-Axis Plotband)'
-            },
-             {
-                name: 'featureProgressState',
-                xtype: 'rallycheckboxfield',
-                boxLabelAlign: 'after',
-                fieldLabel: 'Use Story progress for Features',
-                margin: '0 0 15 50',
-                boxLabel: 'Use Story progress for Features'
             }
+            // ,
+            //  {
+            //     name: 'featureProgressState',
+            //     xtype: 'rallycheckboxfield',
+            //     boxLabelAlign: 'after',
+            //     fieldLabel: 'Use Story progress for Features',
+            //     margin: '0 0 15 50',
+            //     boxLabel: 'Use Story progress for Features'
+            // }
 
         ];
     }
