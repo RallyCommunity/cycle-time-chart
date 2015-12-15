@@ -370,7 +370,13 @@ Ext.define('CustomApp', {
         
         var start = moment().dayOfYear(0).toISOString();
         var end =   moment().toISOString();
-        tisc = new window.parent._lumenize.TimeInStateCalculator(config);
+        var tisc = null;
+        if (_.isUndefined(window.parent._lumenize)) {
+            tisc = new window._lumenize.TimeInStateCalculator(config);
+        } else {
+            tisc = new window.parent._lumenize.TimeInStateCalculator(config);
+        }
+        // tisc = new window.parent._lumenize.TimeInStateCalculator(config);
         tisc.addSnapshots(snapshots, start, end);
         var results = tisc.getResults();
 
@@ -724,6 +730,8 @@ Ext.define('CustomApp', {
                     },
                     ready: function(picker) {
                         console.log("Completed State Ready:",this.getValue());
+                        this.setValue(me.getSetting("completedStateName"));
+                        console.log("value",me.getSetting("completedStateName"));
                     }
                 },
                 bubbleEvents : ['completed_state_selected']
