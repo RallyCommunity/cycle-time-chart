@@ -51,6 +51,7 @@ Ext.define('CustomApp', {
         var that = this;
         app = this;
         app.totalWorkItems = 0;
+        console.log("TypeID:",app.getSetting("typeObjectID"));
 
         this._workspaceConfig = this.getContext().getWorkspace().WorkspaceConfiguration;
     
@@ -90,23 +91,23 @@ Ext.define('CustomApp', {
 
                 console.log("intervalCompletedSnapshots",intervalCompletedSnapshots);
 
-                var filtered = [];
+                // var filtered = [];
 
-                _.each(intervalCompletedSnapshots,function(bucket,x) {
+                // _.each(intervalCompletedSnapshots,function(bucket,x) {
 
-                    var remaining = _.map(intervalCompletedSnapshots,function(iSnapshots,i) {
-                        return i > x ? iSnapshots : null;
-                    });
+                //     var remaining = _.map(intervalCompletedSnapshots,function(iSnapshots,i) {
+                //         return i > x ? iSnapshots : null;
+                //     });
 
-                    remaining = _.flatten(_.compact(remaining));
+                //     remaining = _.flatten(_.compact(remaining));
 
-                    var f = _.filter(bucket,function(item) {
-                        return _.find(remaining,function(r) { return r.raw.ObjectID === item.raw.ObjectID;});
-                    });
-                    filtered.push(f);
-                });
+                //     var f = _.filter(bucket,function(item) {
+                //         return _.find(remaining,function(r) { return r.raw.ObjectID === item.raw.ObjectID;});
+                //     });
+                //     filtered.push(f);
+                // });
 
-                console.log("filtered",filtered);
+                // console.log("filtered",filtered);
 
                 that.completedSnapshots = _.flatten(intervalCompletedSnapshots);
                 console.log("Completed Items",that.completedSnapshots);
@@ -145,8 +146,6 @@ Ext.define('CustomApp', {
 
     getCycleTimeSnapshots : function(workItems) {
 
-        // console.log("getCycleTimeSnapshots",workItems);
-
         var that = this;
         var deferred1 = new Deft.Deferred();
 
@@ -184,35 +183,6 @@ Ext.define('CustomApp', {
         return deferred1.getPromise();
     },
 
-    getWorkItemSnapshots : function(workItems) {
-
-        var that = this;
-
-        var deferred1 = new Deft.Deferred();
-
-        var promises = _.map( workItems, function(workItem) {
-            var deferred = Ext.create('Deft.Deferred');
-                that.getSnapshots(
-                    workItem
-                ).then({    
-                    scope: that,
-                    success: function(snapshots) {
-                        deferred.resolve(snapshots);
-                    }
-                });
-            return deferred.getPromise();
-        });
-
-        Deft.Promise.all(promises).then( {
-            scope : that,
-            success : function(allWorkItemSnapshots) {
-                // console.log("getWorkItemSnapshots",allWorkItemSnapshots);
-                deferred1.resolve(allWorkItemSnapshots);
-            }
-        });
-        return deferred1.getPromise();
-    },
-
     showMask: function(msg) {
         if ( this.getEl() ) { 
             this.getEl().unmask();
@@ -225,22 +195,11 @@ Ext.define('CustomApp', {
 
     getSnapshots : function(workItem) {
 
-        // console.log("workItem",workItem);
-
         var that = this;
-        // var query = that._getProjectScopedQuery(
-        //     Ext.merge({
-        //         // '_ProjectHierarchy': { "$in" : [Number(this.getContext().getProject().ObjectID)] },
-        //         'ObjectID' : workItem.get("ObjectID")
-        //     }, that.progressPredicate()));
         var query = 
             Ext.merge({
-                // '_ProjectHierarchy': { "$in" : [Number(this.getContext().getProject().ObjectID)] },
                 'ObjectID' : workItem.get("ObjectID")
             }, that.progressPredicate());
-
-
-        // console.log("query",JSON.stringify(query));
 
         var deferred = new Deft.Deferred();
 
@@ -257,7 +216,7 @@ Ext.define('CustomApp', {
                     for (var i = 0, ii = store.getTotalCount(); i < ii; ++i) {
                         snapshots.push(store.getAt(i).data);
                     }
-                    // console.log("snapshots:",snapshots.length);
+                    // console.log(_.first(snapshots).FormattedID,snapshots.length);
                     deferred.resolve(snapshots);
                 }
             },
@@ -368,7 +327,7 @@ Ext.define('CustomApp', {
             workDayEndBefore: { hour: 22, minute: 0 } // # 11:00 in Chicago is 17:00 in GMT  # 
         };
         
-        var start = moment().dayOfYear(0).toISOString();
+        var start = moment().subtract(1, 'years').toISOString();
         var end =   moment().toISOString();
         var tisc = null;
         if (_.isUndefined(window.parent._lumenize)) {
@@ -379,6 +338,7 @@ Ext.define('CustomApp', {
         // tisc = new window.parent._lumenize.TimeInStateCalculator(config);
         tisc.addSnapshots(snapshots, start, end);
         var results = tisc.getResults();
+        // console.log("results",snapshots,results);
 
         return results;
     },
@@ -609,14 +569,38 @@ Ext.define('CustomApp', {
                       {property:'Restorable',value:true}
                     ]
                 },
-                // labelWidth: 100,
                 labelStyle : "width:200px;",
                 labelAlign: 'left',
                 minWidth: 200,
                 margin: "0 0 15 50",
                 valueField:'TypePath',
-                bubbleEvents: ['select','ready'],
-                readyEvent: 'ready'
+                bubbleEvents: ['select','ready','typeSelectedEvent'],
+                readyEvent: 'ready',
+                   listeners: {
+                    ready: function(field_box,records) {
+                        if (this.getRecord()!==false)
+                            this.fireEvent('typeSelectedEvent', this.getRecord(),this.modelType);
+                    },
+                    select: function(field_picker,records) {
+                        console.log("firing type event",this.getRecord());
+                        this.fireEvent('typeSelectedEvent', this.getRecord(),this.modelType);
+                    }
+                },
+            },
+            {
+                name: 'typeObjectID',
+                hidden : true,
+                xtype: 'rallytextfield',
+                boxLabelAlign: 'after',
+                fieldLabel: 'Intervals',
+                margin: '0 0 15 50',
+                labelStyle : "width:200px;",
+                handlesEvents: { 
+                    typeSelectedEvent: function(type) {
+                        console.log("received:",type)
+                        this.setValue(type.get("ObjectID"));
+                    }
+                }
             },
             {
                 name: 'field',
