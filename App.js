@@ -56,6 +56,7 @@ Ext.define('CustomApp', {
         this._workspaceConfig = this.getContext().getWorkspace().WorkspaceConfiguration;
     
         this.type = this.getSetting("type") === "Story" ? "HierarchicalRequirement" : this.getSetting("type");
+        this.typeObjectID = app.getSetting("typeObjectID");
         this.field = this.getSetting("field");
         this.states = this.getSetting("states").split(",");
         // this.completedState = this.getSetting("completedState").get("name");
@@ -63,6 +64,12 @@ Ext.define('CustomApp', {
         this.lookbackPeriods = this.getSetting("intervalNumber");
         this.lookbackPeriod = this.getSetting("intervalType");
         this.granularity = this.getSetting("granularity") === "day" ? "day" : "hour";
+
+        // return if no type selected.
+        if (_.isNull(this.typeObjectID)) {
+            this.add({html:"No type selected. Edit App Settings to select"});
+            return;
+        }
 
         var intervals = this.getDateIntervals(this.lookbackPeriod,this.lookbackPeriods);
         console.log("intervals", intervals);
@@ -72,7 +79,8 @@ Ext.define('CustomApp', {
         var promises = _.map(intervals,function(interval) {
             var deferred = Ext.create('Deft.Deferred');
                 that._getCompletedSnapshots(
-                    that.type, 
+                    // that.type, 
+                    that.typeObjectID,
                     that.field, 
                     that.completedState,
                     interval
@@ -257,12 +265,11 @@ Ext.define('CustomApp', {
 
     _getProjectScopedQuery: function(query) {
         return Ext.merge({
-            //'_ProjectHierarchy': Number((!_.isUndefined(__PROJECT_OID__) ? __PROJECT_OID__ : this.getContext().getProject().ObjectID) 
             '_ProjectHierarchy': { "$in" : [Number(this.getContext().getProject().ObjectID)] }
         }, query);
     },
 
-    _getCompletedSnapshots : function(type, field, endState, interval) {
+    _getCompletedSnapshots : function(typeObjectID, field, endState, interval) {
 
         var that = this;
 
@@ -274,7 +281,8 @@ Ext.define('CustomApp', {
                     {"_ValidFrom" : { "$gte" : interval.start }},
                     {"_ValidFrom" : { "$lt" : interval.end }}
                 ],
-                "_TypeHierarchy":{"$in":[type]}
+                // "_TypeHierarchy":{"$in":[type]}
+                "_TypeHierarchy":{"$in":[typeObjectID]}
         };
 
         // "_PreviousValues.ActualEndDate" : null
@@ -285,7 +293,7 @@ Ext.define('CustomApp', {
         find[("_PreviousValues." + field)] = { "$exists" : true };
 
         var fields = ["_TypeHierarchy","ObjectID","FormattedID","_ValidFrom","_PreviousValues."+field,field,"Name"];
-        var hydrate = [ "_PreviousValues."+field, field, "_TypeHierarchy"];
+        var hydrate = [ "_PreviousValues."+field, field /**, "_TypeHierarchy"**/];
 
         var config = {
             find : find,
